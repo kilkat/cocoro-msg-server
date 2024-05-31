@@ -55,3 +55,11 @@ module.exports.userCreate = async (req, res, next) => {
         res.status(500).json({ message: "Internal server error." });
     }
 }
+
+module.exports.userLogin = async (req, res, next) => {
+    const body = req.body;
+    const email = body.email;
+    const password = body.password;
+
+    
+}
