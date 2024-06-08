@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/index.ctrl.js');
+const controller = require('../controllers/index.ctrl');
+const authenticateToken = require('../middlewares/auth');
 
 router.get('/', controller.getTest);
-router.post('/userCreate', controller.userCreate);
-router.post('/userLogin', controller.userLogin);
+router.post('/user/userCreate', controller.userCreate);
+router.post('/user/userLogin', controller.userLogin);
+router.post('/user/userFriends', authenticateToken, controller.userFriends);
 
 module.exports = router;
