@@ -1,4 +1,4 @@
-const { User } = require('../models');
+const { User, Friends } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -57,9 +57,7 @@ module.exports.userCreate = async (req, res, next) => {
 }
 
 module.exports.userLogin = async (req, res, next) => {
-    const body = req.body;
-    const email = body.email;
-    const password = body.password;
+    const { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required." });
@@ -67,7 +65,7 @@ module.exports.userLogin = async (req, res, next) => {
 
     try {
         const user = await User.findOne({ where: { email: email } });
-        console.log("userInfo: " + user);
+        console.log("userInfo_1: " + JSON.stringify(user));
 
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password." });
@@ -81,13 +79,69 @@ module.exports.userLogin = async (req, res, next) => {
 
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 
-        res.status(200).json({ message: "Login successful.", token: token, name: user.name });
+        console.log("token: " + token);
+        return res.status(200).json({ message: "Login successful.", token: token, name: user.name });
     } catch (err) {
-        console.error("Error during login:", err);
-        res.status(500).json({ message: "Internal server error." });
+        console.error("Error during login: ", err);
+        return res.status(500).json({ message: "Internal server error." });
     }
 }
 
-module.exports.userFriends = async (req, res, next) => {
-    
+module.exports.userSearch = async (req, res, next) => {
+    const body = req.body;
+    const email = body.email;
+
+    if (!email){
+        return res.status(400).json({ message: "Email is required" });
+    }
+
+    try {
+        const user = await User.findOne({ where: { email: email } });
+        console.log("test");
+        if (user) {
+            console.log("userInfo_2: ", user.toJSON());
+        } else {
+            console.log("userInfo_2: No user found");
+        }
+
+        if (!user){
+            return res.status(401).json({ message: "Invalid email" });
+        }
+
+        return res.status(200).json({ message: "User search success", email: user.email, name: user.name });
+    } catch(err) {
+        console.error("Error during search: ", err);
+        return res.status(500).json({ message: "Internal server error." });
+    }
 }
+
+module.exports.addFriend = async (req, res, next) => {
+    const { userEmail, friendEmail } = req.body;
+
+    if (!userEmail || !friendEmail) {
+        return res.status(400).json({ message: "User email and friend email are required." });
+    }
+
+    try {
+        const user = await User.findOne({ where: { email: userEmail } });
+        const friend = await User.findOne({ where: { email: friendEmail } });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        if (!friend) {
+            return res.status(404).json({ message: "Friend not found." });
+        }
+
+        await Friends.create({
+            userId: user.id,
+            friendId: friend.id
+        });
+
+        return res.status(200).json({ message: "Friend added successfully." });
+    } catch (error) {
+        console.error("Error adding friend:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+};
