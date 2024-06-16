@@ -1,6 +1,7 @@
 const { User, Friends } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 
 require('dotenv').config();
 
@@ -49,7 +50,7 @@ module.exports.userCreate = async (req, res, next) => {
             password: hashedPassword
         });
 
-        res.status(200).json({ message: "User created successfully.", user: userCreate });
+        res.status(200).json({ message: "User created successfully.", email: userCreate.email, name: userCreate.name, phone: userCreate.phone });
     } catch (err) {
         console.error("Error creating user:", err);
         res.status(500).json({ message: "Internal server error." });
@@ -65,7 +66,7 @@ module.exports.userLogin = async (req, res, next) => {
 
     try {
         const user = await User.findOne({ where: { email: email } });
-        console.log("userInfo_1: " + JSON.stringify(user));
+        // console.log("user id info: " + JSON.stringify(user.id));
 
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password." });
@@ -79,13 +80,28 @@ module.exports.userLogin = async (req, res, next) => {
 
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 
+        const userId = user.id;
+        // console.log("====================")
+        // console.log("userInfo: " + userId);
+        // console.log("====================")
+        const friends = await Friends.findAll({ where: { userId } });
+
+        // console.log("friends id info: " + JSON.stringify(friends));
+
+        const friendsId = friends.map(friend => friend.friendId).sort((a, b) => a - b);
+        console.log("sorted friends id: " + JSON.stringify(friendsId));
+
+        const friendInfo = await User.findAll({ where: { id: { [Op.in]: friendsId } } });
+        console.log("Friends info: " + JSON.stringify(friendInfo));
+
         console.log("token: " + token);
-        return res.status(200).json({ message: "Login successful.", token: token, name: user.name });
+        return res.status(200).json({ message: "Login successful.", token: token, name: user.name, friends: friendInfo });
     } catch (err) {
         console.error("Error during login: ", err);
         return res.status(500).json({ message: "Internal server error." });
     }
 }
+
 
 module.exports.userSearch = async (req, res, next) => {
     const body = req.body;

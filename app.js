@@ -21,10 +21,10 @@ syncDatabase();
 app.use(express.json());
 
 app.use('/', router);
-app.use('/user/userCreate', router);
-app.use('/user/userLogin', router);
-app.use('/user/userSearch', router);
-app.use('/user/addFriend', router);
+// app.use('/user/userCreate', router);
+// app.use('/user/userLogin', router);
+// app.use('/user/userSearch', router);
+// app.use('/user/addFriend', router);
 
 app.listen(port, () => {
     console.log(`server is listening at localhost:${process.env.PORT}`);
