@@ -95,7 +95,7 @@ module.exports.userLogin = async (req, res, next) => {
         console.log("Friends info: " + JSON.stringify(friendInfo));
 
         console.log("token: " + token);
-        return res.status(200).json({ message: "Login successful.", token: token, name: user.name, friends: friendInfo });
+        return res.status(200).json({ message: "Login successful.", token: token, email: user.email, name: user.name ,friends: friendInfo });
     } catch (err) {
         console.error("Error during login: ", err);
         return res.status(500).json({ message: "Internal server error." });
