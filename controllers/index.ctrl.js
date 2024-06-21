@@ -2,7 +2,6 @@ const { User, Friends } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
-
 require('dotenv').config();
 
 module.exports.getTest = (req, res, next) => {
@@ -66,7 +65,6 @@ module.exports.userLogin = async (req, res, next) => {
 
     try {
         const user = await User.findOne({ where: { email: email } });
-        // console.log("user id info: " + JSON.stringify(user.id));
 
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password." });
@@ -81,27 +79,17 @@ module.exports.userLogin = async (req, res, next) => {
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 
         const userId = user.id;
-        // console.log("====================")
-        // console.log("userInfo: " + userId);
-        // console.log("====================")
         const friends = await Friends.findAll({ where: { userId } });
 
-        // console.log("friends id info: " + JSON.stringify(friends));
-
         const friendsId = friends.map(friend => friend.friendId).sort((a, b) => a - b);
-        console.log("sorted friends id: " + JSON.stringify(friendsId));
-
         const friendInfo = await User.findAll({ where: { id: { [Op.in]: friendsId } } });
-        console.log("Friends info: " + JSON.stringify(friendInfo));
 
-        console.log("token: " + token);
         return res.status(200).json({ message: "Login successful.", token: token, email: user.email, name: user.name ,friends: friendInfo });
     } catch (err) {
         console.error("Error during login: ", err);
         return res.status(500).json({ message: "Internal server error." });
     }
 }
-
 
 module.exports.userSearch = async (req, res, next) => {
     const body = req.body;
@@ -113,12 +101,6 @@ module.exports.userSearch = async (req, res, next) => {
 
     try {
         const user = await User.findOne({ where: { email: email } });
-        console.log("test");
-        if (user) {
-            console.log("userInfo_2: ", user.toJSON());
-        } else {
-            console.log("userInfo_2: No user found");
-        }
 
         if (!user){
             return res.status(401).json({ message: "Invalid email" });
@@ -160,4 +142,57 @@ module.exports.addFriend = async (req, res, next) => {
         console.error("Error adding friend:", error);
         return res.status(500).json({ message: "Internal server error." });
     }
+}
+
+module.exports.initializeSocket = (server) => {
+    const io = require('socket.io')(server);
+    const users = {}; // Keep track of connected users and their intervals
+
+    io.on('connection', (socket) => {
+        console.log('a user connected');
+
+        socket.on('authenticate', async (token) => {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+                const user = await User.findOne({ where: { id: decoded.id } });
+                if (user) {
+                    socket.userId = user.id;
+                    socket.email = user.email;
+                    console.log(`User authenticated: ${user.email}`);
+
+                    // Start sending friend lists periodically
+                    users[socket.id] = setInterval(async () => {
+                        try {
+                            const friends = await Friends.findAll({ where: { userId: user.id } });
+                            const friendsId = friends.map(friend => friend.friendId).sort((a, b) => a - b);
+                            const friendInfo = await User.findAll({ where: { id: { [Op.in]: friendsId } } });
+                            const sanitizedFriends = friendInfo.map(friend => ({
+                                id: friend.id,
+                                email: friend.email,
+                                name: friend.name,
+                                phone: friend.phone,
+                                createdAt: friend.createdAt,
+                                updatedAt: friend.updatedAt
+                            }));
+                            socket.emit('friend_list', { friends: sanitizedFriends });
+                        } catch (error) {
+                            console.error("Error fetching friend list: ", error);
+                        }
+                    }, 10000); // 10초마다 전송
+                } else {
+                    socket.disconnect();
+                }
+            } catch (err) {
+                socket.disconnect();
+            }
+        });
+
+        socket.on('disconnect', () => {
+            console.log('user disconnected');
+            clearInterval(users[socket.id]); // Clear the interval when user disconnects
+            delete users[socket.id];
+        });
+    });
+
+    return io;
 };
