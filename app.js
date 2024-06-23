@@ -8,8 +8,16 @@ require('dotenv').config();
 
 async function syncDatabase() {
     try {
+        // 외래 키 제약 조건 비활성화
+        // await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+        
+        // 데이터베이스 동기화
         await sequelize.sync({ force: false });
-        console.log('데이터 베이스 연결 성공');
+        
+        // 외래 키 제약 조건 활성화
+        // await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+        
+        console.log('데이터베이스 연결 성공');
     } catch (err) {
         console.log(err);
     }

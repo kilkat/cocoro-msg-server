@@ -11,7 +11,6 @@ module.exports = class User extends Sequelize.Model {
             name: {
                 type: Sequelize.STRING(20),
                 allowNull: false,
-                unique: false,
             },
             phone: {
                 type: Sequelize.STRING(15),
@@ -21,7 +20,6 @@ module.exports = class User extends Sequelize.Model {
             password: {
                 type: Sequelize.STRING(250),
                 allowNull: false,
-                unique: false,
             },
         }, {
             sequelize,
@@ -48,5 +46,15 @@ module.exports = class User extends Sequelize.Model {
             foreignKey: 'friendId',
             otherKey: 'userId'
         });
+        this.belongsToMany(db.ChatRoom, {
+            through: db.ChatRoomMembers, // 중간 테이블을 지정
+            as: 'ChatRooms',
+            foreignKey: 'userId',
+            otherKey: 'chatroomId',
+        });
+        this.hasMany(db.Message, {
+            foreignKey: 'userId',
+            as: 'Messages',
+        });
     }
-}
+};
