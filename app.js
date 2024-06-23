@@ -3,7 +3,7 @@ const http = require('http');
 const app = express();
 const port = process.env.PORT || 80;
 const { sequelize } = require('./models');
-const { initializeSocket } = require('./controllers/index.ctrl');
+const { initializeSocket } = require('./controllers/user.ctrl');
 require('dotenv').config();
 
 async function syncDatabase() {
