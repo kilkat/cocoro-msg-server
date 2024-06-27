@@ -178,7 +178,7 @@ module.exports.initializeSocket = (server) => {
                         } catch (error) {
                             console.error("Error fetching friend list: ", error);
                         }
-                    }, 10000); // 10초마다 전송
+                    }, 3000); // 3초마다 전송
                 } else {
                     socket.disconnect();
                 }
